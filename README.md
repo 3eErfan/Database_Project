@@ -1,2 +1,2 @@
-# Database_Project
+# Database Project
 Database Course Project
