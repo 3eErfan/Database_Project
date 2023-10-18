@@ -3,4 +3,5 @@ This is our Database Course Project, a website for managing tree-cutting for a c
 David Smit.
 
 
-[Link to the PDF](./ERD.pdf)
+[![PDF Name](ERD.png)](ERD.pdf)
+
