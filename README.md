@@ -39,7 +39,7 @@ Follow these steps to set up your environment. Please ensure you select the corr
 
 ## Project Setup
 
-1. **Download Project**: Click [here](https://www.example.com/your/repo/download) to download the repository as a ZIP file.
+1. **Download Project**: Click [here](https://github.com/3eErfan/Database_Project/archive/refs/heads/main.zip) to download the repository as a ZIP file.
 
 2. **Import Project in Eclipse**:
 
