@@ -14,7 +14,7 @@ Follow these steps to set up your environment. Please ensure you select the corr
 
 ## Prerequisites
 
-1. **Java JDK**: You will need to install [Java](https://www.oracle.com/java/technologies/javase/jdk20-archive-downloads.html) Version 20 JDK.
+1. **Java JDK**: You will need to install [Java Version 20 JDK](https://www.oracle.com/java/technologies/javase/jdk20-archive-downloads.html).
 
    After installation, set up the environment variable as follows:
 
@@ -29,21 +29,13 @@ Follow these steps to set up your environment. Please ensure you select the corr
 
    > Replace 'path to your JDK installation' with the actual path where the Java JDK was installed on your machine.
 
-2. **Apache Tomcat (Version 9)**: This is required to serve your web applications.
+2. **Apache Tomcat (Version 9)**: [Apache Tomcat v9](https://tomcat.apache.org/download-90.cgi) required to serve your web applications.
 
-   - [Windows](https://www.example.com/tomcat/windows)
-   - [Mac](https://www.example.com/tomcat/mac)
-   - [Linux](https://www.example.com/tomcat/linux)
-
-3. **MySQL**: You need MySQL to manage your application's database.
-
-   - [Windows](https://www.example.com/mysql/windows)
-   - [Mac](https://www.example.com/mysql/mac)
-   - [Linux](https://www.example.com/mysql/linux)
+3. **MySQL**: You need [MySQL 8.0](https://dev.mysql.com/downloads/mysql/) to manage your application's database.
 
 4. **Eclipse IDE**: This is the recommended IDE for development.
 
-   - [Download Eclipse](https://www.example.com/eclipse)
+   - [Download Eclipse](https://www.eclipse.org/downloads/)
 
 ## Project Setup
 
