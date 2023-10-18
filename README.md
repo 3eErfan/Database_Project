@@ -14,11 +14,7 @@ Follow these steps to set up your environment. Please ensure you select the corr
 
 ## Prerequisites
 
-1. **Java JDK**: You will need to install Java Version 20 JDK.
-
-   - [Windows](https://www.example.com/java/windows)
-   - [Mac](https://www.example.com/java/mac)
-   - [Linux](https://www.example.com/java/linux)
+1. **Java JDK**: You will need to install [Java](https://www.oracle.com/java/technologies/javase/jdk20-archive-downloads.html) Version 20 JDK.
 
    After installation, set up the environment variable as follows:
 
