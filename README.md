@@ -53,17 +53,17 @@ Follow these steps to set up your environment. Please ensure you select the corr
 You are now ready to start working on your project!
 
 ## Contributions of the two team members 
-Team member1
-1)Database Design (ER Diagram): Designed the Entity-Relationship (ER) diagram, which defines the structure and relationships of the database tables. This includes defining tables like "User," "Requests," "Trees," and "Chats," as well as specifying their attributes and relationships.
-2)Database Initialization: Implemented the code for initializing the database. This includes creating the necessary tables and populating the initial data.
-3)User Class Implementation: Wrote the user class, which represents the attributes and behavior of a user. This class includes constructors, getter and setter methods, and SQL queries to interact with the database.
-4)JSP Pages: Developed the JSP pages for user registration and login. Created the registration form and implemented the logic for users to register and log in. This includes handling form submissions, data validation, and database interactions.
+Team member1:
+1.Database Design (ER Diagram): Designed the Entity-Relationship (ER) diagram, which defines the structure and relationships of the database tables. This includes defining tables like "User," "Requests," "Trees," and "Chats," as well as specifying their attributes and relationships.
+2.Database Initialization: Implemented the code for initializing the database. This includes creating the necessary tables and populating the initial data.
+3.User Class Implementation: Wrote the user class, which represents the attributes and behavior of a user. This class includes constructors, getter and setter methods, and SQL queries to interact with the database.
+4.JSP Pages: Developed the JSP pages for user registration and login. Created the registration form and implemented the logic for users to register and log in. This includes handling form submissions, data validation, and database interactions.
 
 Team member 2:
-1)Servlets and DAO Implementation: Implemented the servlets and data access objects (DAOs) for handling user login and registration. This includes creating the userDAO class to interact with the database and validate user credentials during login.
-2)Login JSP Page: Developed the JSP page for user login. Designed the login form and implemented the logic for authenticating users based on their email and password. Integrated this with the userDAO class.
-3)JSP Page for Viewing Data: Created the JSP page for viewing data from the database. This includes displaying a list of users, requests, trees, and chat history. Integrated the JSTL (JavaServer Pages Standard Tag Library) for iterating through data collections and displaying information.
-4)Collaboration: Worked with Team Member 1 to ensure that the database structure and data initialization aligned with the requirements of the application. This required close coordination to ensure that the data presented in the JSP pages accurately reflected what was stored in the database.
+1.Servlets and DAO Implementation: Implemented the servlets and data access objects (DAOs) for handling user login and registration. This includes creating the userDAO class to interact with the database and validate user credentials during login.
+2.Login JSP Page: Developed the JSP page for user login. Designed the login form and implemented the logic for authenticating users based on their email and password. Integrated this with the userDAO class.
+3.JSP Page for Viewing Data: Created the JSP page for viewing data from the database. This includes displaying a list of users, requests, trees, and chat history. Integrated the JSTL (JavaServer Pages Standard Tag Library) for iterating through data collections and displaying information.
+4.Collaboration: Worked with Team Member 1 to ensure that the database structure and data initialization aligned with the requirements of the application. This required close coordination to ensure that the data presented in the JSP pages accurately reflected what was stored in the database.
 
 Collaborative Work:
 - Integration: Collaboratively integrated the user registration and login functionality with the database. This involved ensuring that user data could be inserted into the database during registration and validated during login.
