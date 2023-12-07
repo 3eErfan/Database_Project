@@ -48,12 +48,12 @@
             <td><input type="file" name="tree1_photo_3" accept="image/*"></td>
         </tr>
         <tr>
-            <th>Size: </th>
-            <td><input type="text" name="tree1_size"></td>
+            <th>Size (inch): </th>
+            <td><input type="number" name="tree1_size"  ></td>
         </tr>
         <tr>
-            <th>Height: </th>
-            <td><input type="number" name="tree1_height" step="any"></td>
+            <th>Height (feet): </th>
+            <td><input type="number" name="tree1_height" step="any"  ></td>
         </tr>
         <tr>
             <th>Location: </th>
@@ -84,12 +84,12 @@
             <td><input type="file" name="tree2_photo_3" accept="image/*"></td>
         </tr>
         <tr>
-            <th>Size: </th>
-            <td><input type="text" name="tree2_size"></td>
+            <th>Size (inch): </th>
+            <td><input type="number" name="tree2_size"  ></td>
         </tr>
         <tr>
-            <th>Height: </th>
-            <td><input type="number" name="tree2_height" step="any"></td>
+            <th>Height (feet): </th>
+            <td><input type="number" name="tree2_height" step="any"  ></td>
         </tr>
         <tr>
             <th>Location: </th>
@@ -119,12 +119,12 @@
             <td><input type="file" name="tree3_photo_3" accept="image/*"></td>
         </tr>
         <tr>
-            <th>Size: </th>
-            <td><input type="text" name="tree3_size"></td>
+            <th>Size (inch): </th>
+            <td><input type="number" name="tree3_size"  ></td>
         </tr>
         <tr>
-            <th>Height: </th>
-            <td><input type="number" name="tree3_height" step="any"></td>
+            <th>Height (feet): </th>
+            <td><input type="number" name="tree3_height" step="any"  ></td>
         </tr>
         <tr>
             <th>Location: </th>

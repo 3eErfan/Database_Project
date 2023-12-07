@@ -12,13 +12,13 @@
 
 <div align = "center">
 <h1>Request Details</h1>
+<td colspan="5"><a href="/database/activityPage">back</a></td>	
+
+   
+    <p><%= request.getAttribute("trees info") %></p>
 	
-<h2>Trees Info</h2>
-    <div align="center">
-        <p><%= request.getAttribute("trees info") %></p>
-	</div>
 	
-<h2>History of chats</h2>
+	<h2>History of chats</h2>
     <div align="center">
         <p><%= request.getAttribute("History of Chats") %></p>
 	</div>	
@@ -27,7 +27,7 @@
         <p><%= request.getAttribute("msgBox") %></p>
 	</div>	
 	
-	</div>
+</div>
 
 </body>
 </html>
