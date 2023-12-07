@@ -12,8 +12,8 @@
 
 <div align = "center">
 <h1>Request Details</h1>
-	
-<h2>Trees Info</h2>
+<td colspan="5"><a href="/database/activityPage">back</a></td>	
+
     <div align="center">
         <p><%= request.getAttribute("trees info") %></p>
 	</div>

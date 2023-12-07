@@ -14,6 +14,7 @@
     <h1>History of Requests</h1>
         <p><%= request.getAttribute("histoty of requests") %></p>
 	
+	
 	<a href="login.jsp"target ="_self" > logout</a><br><br> 
 	</div>	
 	

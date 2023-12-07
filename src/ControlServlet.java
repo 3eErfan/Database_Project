@@ -58,6 +58,9 @@ public class ControlServlet extends HttpServlet {
 			case "/login":
 				login(request, response);
 				break;
+			case "/activityPage":
+				backToActivity(request, response);
+				break;
 			case "/register":
 				register(request, response);
 				break;
@@ -80,7 +83,7 @@ public class ControlServlet extends HttpServlet {
 				requestDetails(request, response, "");
 				break;
 			case "/newMsg":
-				newMsg(request, response);
+				newMsg(request, response, "normal msg");
 				break;
 			case "/newRequest":
 				newRequest(request, response);
@@ -94,8 +97,23 @@ public class ControlServlet extends HttpServlet {
 			case "/acceptRequest":
 				acceptRequest(request, response, "");
 				break;
+			case "/prepareQuote":
+				requestDetails(request, response, "Prepare Quote");
+				break;
+			case "/prepareBill":
+				requestDetails(request, response, "Prepare Bill");
+				break;
+			case "/preparePayment":
+				requestDetails(request, response, "Prepare Payment");
+				break;
 			case "/sendQuote":
 				quote(request, response, "");
+				break;
+			case "/sendBill":
+				bill(request, response, "");
+				break;
+			case "/payBill":
+				pay(request, response, "");
 				break;
 			}
 
@@ -119,11 +137,23 @@ public class ControlServlet extends HttpServlet {
 			throws ServletException, IOException, SQLException {
 		System.out.println("admin view");
 
-		request.setAttribute("Accepted requests", userDAO.listAdminTable("accepted"));
-		request.setAttribute("Quote requests", userDAO.listAdminTable("Quote"));
-		request.setAttribute("Open requests", userDAO.listAdminTable("Open"));
-		request.setAttribute("Done requests", userDAO.listAdminTable("Done"));
-		request.setAttribute("Rejected requests", userDAO.listAdminTable("Rejected"));
+		request.setAttribute("requests", "\n<h3>Accepted requests</h3>\n"
+							+ userDAO.listAdminTable("accepted")
+							+"\n<h3>Ready Quotes</h3>\n" 
+							+ userDAO.listAdminTable("Quote")
+							+"<h3>Open requests</h3>" 
+							+ userDAO.listAdminTable("Open")
+							+"<h3>Done requests (open payment)</h3>" 
+							+ userDAO.listAdminTable("Bill")
+							+"<h3>Done requests (Paid)</h3>" 
+							+ userDAO.listAdminTable("paid")
+							+"<h3>Rejected requests</h3>" 
+							+ userDAO.listAdminTable("Rejected")
+		);
+		
+		request.setAttribute("Big", userDAO.listBigClients());
+		request.setAttribute("Good", userDAO.listGoodClients());
+		request.setAttribute("Prospective", userDAO.listProspectiveClients());
 		
 		
 		request.getRequestDispatcher("adminView.jsp").forward(request, response);
@@ -159,7 +189,21 @@ public class ControlServlet extends HttpServlet {
 			request.getRequestDispatcher("login.jsp").forward(request, response);
 		}
 	}
-
+	
+	protected void backToActivity(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException, SQLException {
+		
+		if (userDAO.is_admin(currentUser_id)) {
+			adminPage(request, response, "");
+		}else {
+			request.setAttribute("histoty of requests", userDAO.listUserTable(currentUser_id));
+			request.getRequestDispatcher("activitypage.jsp").forward(request, response);
+		}
+		
+		
+	}
+	
+	
 	private void register(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException, SQLException {
 		String email = request.getParameter("email");
@@ -214,37 +258,55 @@ public class ControlServlet extends HttpServlet {
 	private void requestDetails(HttpServletRequest request, HttpServletResponse response, String view) 
 		throws ServletException, IOException, SQLException {
 		
-		
-    	
-        	
-    	
+		if (userDAO.is_admin(currentUser_id))
+			request.setAttribute("trees info", userDAO.listUserInfo(currentRequest_id)
+											  +userDAO.listTreeTable(currentRequest_id));
+		else
+			request.setAttribute("trees info", userDAO.listTreeTable(currentRequest_id));
+		request.setAttribute("History of Chats", userDAO.listChatTable(currentRequest_id));
         
-        request.setAttribute("trees info", userDAO.listTreeTable(currentRequest_id));
-        request.setAttribute("History of Chats", userDAO.listChatTable(currentRequest_id));
+        if (view.equals("Prepare Quote")) {
+        	request.setAttribute("msgBox", userDAO.prepareQuote(currentRequest_id));
+        }else if (view.equals("Prepare Bill")){
+        	request.setAttribute("msgBox", userDAO.prepareBill(currentRequest_id));
+        }else if (view.equals("Prepare Payment")){
+        	request.setAttribute("msgBox", userDAO.preparePayment(currentRequest_id, currentUser_id));
+        }else {
+	        String stat = userDAO.get_request_status(currentRequest_id);
+	        if (stat.equals("rejected"))  
+	        	request.setAttribute("msgBox", " Chat is Closed");
+	        else if (stat.equals("bill"))
+	        	request.setAttribute("msgBox", " Job is Done\n"+userDAO.msgBox(currentRequest_id, currentUser_id));
+	        else if (stat.equals("done"))
+	        	request.setAttribute("msgBox", userDAO.msgBox(currentRequest_id, currentUser_id));
+	        else if (stat.equals("accepted"))
+	        	request.setAttribute("msgBox", " Quote is accepted\n"+userDAO.msgBox(currentRequest_id, currentUser_id));
+	        else 
+	        	request.setAttribute("msgBox", userDAO.msgBox(currentRequest_id, currentUser_id));
+        }
         
-        String stat = userDAO.get_request_status(currentRequest_id);
-        if (!stat.equals("rejected")  && !stat.equals("done")) 
-        	request.setAttribute("msgBox", userDAO.msgBox(currentRequest_id, currentUser_id));
-        else if (stat.equals("accepted"))
-        	request.setAttribute("msgBox", " Quote is accepted\n"+userDAO.msgBox(currentRequest_id, currentUser_id));
-        else
-        	request.setAttribute("msgBox", " Chat is Closed");
         
         request.getRequestDispatcher("requestDetails.jsp").forward(request, response);
 	}
 	
-	private void newMsg(HttpServletRequest request, HttpServletResponse response)
+	private void newMsg(HttpServletRequest request, HttpServletResponse response, String status)
 			throws ServletException, IOException, SQLException {
         
-		
+		String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+        
 //		int requestId = Integer.valueOf( request.getParameter("requestId") );
 		String msg = request.getParameter("msg");
-		String topic = request.getParameter("topic");
+		String topic = "";
+		if (status.equals("Quote") || status.equals("Bill"))
+			topic = status;
+		else
+			topic = request.getParameter("topic");
 
-		userDAO.insertNewMsg(currentRequest_id, currentUser_id, topic, msg);
+		userDAO.insertNewMsg(currentRequest_id, currentUser_id,timeStamp, topic, msg);
 
-		System.out.println("HERE");
 		
+		
+		if (status.equals("normal msg"))
 		requestDetails(request, response, "");
 	}
 	
@@ -257,15 +319,9 @@ public class ControlServlet extends HttpServlet {
 	private void newTree(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException, SQLException {
 		       
-        String timeStamp = new SimpleDateFormat("yyyy-dd-MM").format(Calendar.getInstance().getTime());
+        String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
         
-        userDAO.insertNewRequest(timeStamp, currentUser_id);
-        int request_id = userDAO.get_request_last_id();
-        
-        
-        userDAO.insertNewMsg(request_id, currentUser_id, "beginning", "The request Started with above information");
-        
-		String treeCountString = request.getParameter("treeCount");
+        String treeCountString = request.getParameter("treeCount");
 
 		// Convert the string value to an integer if you need to perform numerical operations
 		int treeCount = 0;
@@ -277,6 +333,15 @@ public class ControlServlet extends HttpServlet {
 		        e.printStackTrace();
 		    }
 		}
+        
+        
+        userDAO.insertNewRequest(timeStamp, currentUser_id, treeCount);
+        int request_id = userDAO.get_request_last_id();
+        
+        
+        userDAO.insertNewMsg(request_id, currentUser_id, timeStamp, "beginning", "The request Started with above information");
+        
+		
 		
 		for (int i=1;i<=treeCount;i++) {
 			String p1 = request.getParameter("tree"+i+"_photo_1");
@@ -297,30 +362,111 @@ public class ControlServlet extends HttpServlet {
 	private void rejectRequest(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
 		
-//			int requestId = Integer.valueOf( request.getParameter("requestId") );
 	        userDAO.change_request_status(currentRequest_id, "rejected");
 	        requestDetails(request, response, view);
 		}
 	private void acceptRequest(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
 			
-//			int requestId = Integer.valueOf( request.getParameter("requestId") );
+		String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+        
 	         
 			String msg = "User accepted the request";
 			String topic = "Acceptance";
 			
-			userDAO.insertNewMsg(currentRequest_id, currentUser_id, topic, msg);
+			userDAO.insertNewMsg(currentRequest_id, currentUser_id,timeStamp, topic, msg);
 			userDAO.change_request_status(currentRequest_id, "accepted");
 	        requestDetails(request, response, view);
 		}
+
 	
 	private void quote(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
-
-			newMsg(request, response);
-//			int requestId = Integer.valueOf( request.getParameter("requestId") );
+			String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+			
+			int tree_n = userDAO.update_tree_cost(request, currentRequest_id);
+			String msg = "Cost is roughly";
+			for (int i=1;i<=tree_n;i++) {
+				String cost = request.getParameter("tree_"+i+"_cost");
+				msg += " $"+cost+" for tree_"+i;
+			}
+			msg += " Note: " + request.getParameter("note");
+			
+			userDAO.insertNewMsg(currentRequest_id, currentUser_id, timeStamp, "Quote", msg);
 	        userDAO.change_request_status(currentRequest_id, "quote");
+	        
+	         
 	        requestDetails(request, response, view);
 	}
 	
+
+	private void bill(HttpServletRequest request, HttpServletResponse response, String view) 
+			throws ServletException, IOException, SQLException {
+			String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+			
+			int tree_n = userDAO.update_tree_cost(request, currentRequest_id);
+			int sum = 0;
+			String msg = "Final Cost is";
+			for (int i=1;i<=tree_n;i++) {
+				String cost = request.getParameter("tree_"+i+"_cost");
+				msg += " $"+cost+" for tree_"+i;
+				sum += Integer.valueOf(cost);
+			}
+			String otherCosts = request.getParameter("other_costs");
+			msg += " and $"+otherCosts+"for other costs.\n";
+			sum += Integer.valueOf(otherCosts);
+			msg += "Total= $"+sum;
+			msg += " Due in one week. Note: " + request.getParameter("note");
+			
+			userDAO.insertNewMsg(currentRequest_id, currentUser_id, timeStamp, "Bill", msg);
+	        userDAO.change_request_status(currentRequest_id, "bill");
+	        userDAO.update_request_bill(currentRequest_id, sum);
+	        requestDetails(request, response, view);
+	}
+	private void pay(HttpServletRequest request, HttpServletResponse response, String view) 
+			throws ServletException, IOException, SQLException {
+		String msg = "";
+		String topic = "";
+		String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+		int amount = Integer.valueOf(request.getParameter("payment_amount"));
+		System.out.println("amount: "+amount+ "  id: "+currentRequest_id);
+		
+		int bill = userDAO.get_bill_RequestId(currentRequest_id);
+		int remaining = bill - userDAO.get_paid_RequestId(currentRequest_id) - amount;
+		if (remaining<=0) {
+			amount += remaining;
+			remaining = 0;
+			userDAO.insertNewMsg(currentRequest_id, currentUser_id,timeStamp, "Paid", "User paid the full price");
+		 	userDAO.change_request_status(currentRequest_id, "paid");
+		}else {
+			msg = "User paid $"+amount+ " Still $"+remaining+ " remains.";
+			topic = "payment";
+			userDAO.insertNewMsg(currentRequest_id, currentUser_id,timeStamp, topic, msg);
+		}
+		
+		userDAO.update_request_paid(currentRequest_id, bill - remaining);		
+		requestDetails(request, response, view);
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
