@@ -10,7 +10,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -168,22 +167,30 @@ public class userDAO {
 	}
 
 	public boolean checkAddress(String adress_street_num, String adress_street, String adress_city, String adress_state,
-			String adress_zip_code) throws SQLException {
-		boolean checks = false;
-		String sql = "SELECT * FROM User WHERE" + " adress_street_num = '" + adress_street_num + "'"
-				+ " and adress_street = '" + adress_street + "'" + " and adress_city = '" + adress_city + "'"
-				+ " and adress_state = '" + adress_state + "'" + " and adress_zip_code = '" + adress_zip_code + "'";
+	        String adress_zip_code) throws SQLException {
+	    boolean checks = false;
+	    String sql = "SELECT * FROM User WHERE adress_street_num = ? and adress_street = ? and adress_city = ? and adress_state = ? and adress_zip_code = ?";
 
-		connect_func();
-		preparedStatement = (PreparedStatement) connect.prepareStatement(sql);
-		ResultSet resultSet = preparedStatement.executeQuery();
+	    connect_func();
+	    try (PreparedStatement preparedStatement = connect.prepareStatement(sql)) {
+	        // Set the parameters for the prepared statement
+	        preparedStatement.setString(1, adress_street_num);
+	        preparedStatement.setString(2, adress_street);
+	        preparedStatement.setString(3, adress_city);
+	        preparedStatement.setString(4, adress_state);
+	        preparedStatement.setString(5, adress_zip_code);
 
-		if (resultSet.next()) {
-			checks = true;
-			System.out.println("Error: Duplicate address");
-		}
+	        ResultSet resultSet = preparedStatement.executeQuery();
 
-		return checks;
+	        if (resultSet.next()) {
+	            checks = true;
+	            System.out.println("Error: Duplicate address");
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return checks;
 	}
 
 	public void insert(user users) throws SQLException {
@@ -289,6 +296,25 @@ public class userDAO {
 	    }
 	}
 	
+	public int get_request_id(int tree_id) throws SQLException { 
+	    String sql = "SELECT request_id FROM trees WHERE tree_id = ?";
+	    connect_func();
+	    PreparedStatement preparedStatement = connect.prepareStatement(sql);
+	    preparedStatement.setInt(1, tree_id);
+	    ResultSet resultSet = preparedStatement.executeQuery();
+
+	    // Move the cursor to the first row
+	    if (resultSet.first()) {
+	        int request_id = resultSet.getInt(1);
+	        System.out.println("request status is: " + request_id);
+	        return request_id;
+	    } else {
+	        // Handle the case where no rows are returned
+	        System.out.println("No tree found with ID: " + tree_id);
+	        return -1; 
+	    }
+	}
+	
 	public ResultSet get_tree_id(int request_id) throws SQLException { 
 	    String sql = "select tree_id from trees where request_id = ?";
 	    connect_func(); 
@@ -338,11 +364,13 @@ public class userDAO {
 	    StringBuilder htmlTable = new StringBuilder();
 
 	    htmlTable.append("<table border='1'>"); // Start of the table, add more styling if needed
-	    htmlTable.append("<tr><th>Tree ID</th></tr>"); // Table header
-
+	    htmlTable.append("<tr><th>Tree ID</th><th>Request ID</th></tr>"); // Table header
+	    
 	    for (Integer ID : treeIds) {
+	    	
 	        htmlTable.append("<tr>"); // Start of row
 	        htmlTable.append("<td>").append(ID).append("</td>"); // Tree ID column
+	        htmlTable.append("<td>").append(get_request_id(ID)).append("</td>"); // request ID column
 	        htmlTable.append("</tr>"); // End of row
 	    }
 
@@ -536,7 +564,8 @@ public class userDAO {
 		return htmlTable.toString();
 	}
 
-	public String generateHTMLRequestTable(ResultSet resultSet, boolean isUser) throws SQLException {
+
+	public String generateHTMLRequestTable_user(ResultSet resultSet) throws SQLException {
 	    
 		System.out.println("overdue:");
 		List<Integer> overdue = ChatDelay.getUnpaidBills(connect);
@@ -547,14 +576,9 @@ public class userDAO {
 	        htmlTable.append("<table border=\"1\">\n")
 	                 .append("  <thead>\n")
 	                 .append("    <tr>\n")
-	                 .append("      <th>Date</th>\n"); // Header for Date
+	                 .append("      <th>Date</th>\n")
+	                 .append("      <th>Status</th>\n"); // Header for Status
 
-	        // Conditional column based on 'isUser'
-	        if (isUser) {
-	            htmlTable.append("      <th>Status</th>\n"); // Header for Status
-	        } else {
-	            htmlTable.append("      <th>Tree Count</th>\n"); // Header for Tree Count
-	        }
 
 	        // Headers for Request ID and Open Balance
 	        htmlTable.append("      <th>Request ID</th>\n")
@@ -567,27 +591,20 @@ public class userDAO {
 	        while (resultSet.next()) {
 	            String requestDate = resultSet.getString("request_date");
 	            String status = resultSet.getString("status");
-	            int tree_n = resultSet.getInt("tree_n");
 	            String requestId = resultSet.getString("request_id");
 	            int openBalance = resultSet.getInt("bill")-resultSet.getInt("paid"); // Fetch open balance
 
 	            // Check if the requestId is in the overdue list
-	            String rowStyle = overdue.contains(Integer.valueOf(requestId)) ? " style=\"background-color: red;\"" : 
-	                             ((tree_n == 1 && status.equals("accepted") && !isUser) ? " style=\"background-color: #90EE90;\"" : "");
+	            String rowStyle = overdue.contains(Integer.valueOf(requestId)) ? " style=\"background-color: #FF7F7F;\"" : "";
 
 
 	            // Constructing each row of the table
 	            htmlTable.append("    <tr").append(rowStyle).append(">\n")
 	                     .append("      <td><a href=\"/database/requestDetails?requestId=").append(requestId)
 	                     .append("\" class=\"date-link\" data-request-id=\"").append(requestId)
-	                     .append("\">").append(requestDate).append("</a></td>\n");
+	                     .append("\">").append(requestDate).append("</a></td>\n")	
+	                     .append("      <td>").append(status).append("</td>\n");
 
-	            // Conditionally adding status or tree count
-	            if (isUser) {
-	                htmlTable.append("      <td>").append(status).append("</td>\n");
-	            } else {
-	                htmlTable.append("      <td>").append(tree_n).append("</td>\n");
-	            }
 
 	            // Adding Request ID and Open Balance
 	            htmlTable.append("      <td>").append(requestId).append("</td>\n")
@@ -595,13 +612,10 @@ public class userDAO {
 	                     .append("    </tr>\n");
 	        }
 
-	        // Add 'Start New Request' link for users
-	        if (isUser) {
 	            htmlTable.append("    <tr>\n")
 	                     .append("      <td colspan=\"5\"><a href=\"/database/newRequest\">Start New Request</a></td>\n") // Adjusted colspan to 5
 	                     .append("    </tr>\n");
-	        }
-
+	        
 	        // Finish the HTML table
 	        htmlTable.append("  </tbody>\n")
 	                 .append("</table>\n");
@@ -612,51 +626,73 @@ public class userDAO {
 
 	    return htmlTable.toString();
 	}
+	public String generateHTMLRequestTable_Admin(ResultSet resultSet, String status) throws SQLException {
+	    
+		List<Integer> overdue = ChatDelay.getUnpaidBills(connect);
+		StringBuilder htmlTable = new StringBuilder();
 
-//	public static String generateChatHTMLTable(ResultSet resultSet) throws SQLException {
-//		StringBuilder htmlTable = new StringBuilder();
-//		try {
-//			htmlTable.append("<table border=\"1\">\n")
-//					.append("  <thead>\n")
-//					.append("    <tr>\n")
-//					.append("      <th>Date</th>\n")
-//					.append("      <th>Topic</th>\n")
-//					.append("      <th>Message Content</th>\n")
-//					.append("      <th>Sender</th>\n")
-//					.append("    </tr>\n")
-//					.append("  </thead>\n")
-//					.append("  <tbody>\n");
-//
-//			while (resultSet.next()) {
-//				String msgDate = resultSet.getString("msg_date");
-//				String msgTopic = resultSet.getString("msg_topic");
-//				String msgContent = resultSet.getString("msg_content");
-//				String whoSent = resultSet.getString("who_sent");
-//
-//				htmlTable.append("    <tr>\n")
-//						.append("      <td>")
-//						.append(msgDate)
-//						.append("</td>\n")
-//						.append("      <td>")
-//						.append(msgTopic)
-//						.append("</td>\n")
-//						.append("      <td>")
-//						.append(msgContent)
-//						.append("</td>\n")
-//						.append("      <td>")
-//						.append(whoSent)
-//						.append("</td>\n")
-//						.append("    </tr>\n");
-//			}
-//
-//			htmlTable.append("  </tbody>\n")
-//					 .append("</table>\n");
-//
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
-//		return htmlTable.toString();
-//	}
+	    try {
+	        // Start building the HTML table
+	        htmlTable.append("<table border=\"1\">\n")
+	                 .append("  <thead>\n")
+	                 .append("    <tr>\n")
+	                 .append("      <th>Date</th>\n")
+	                 .append("      <th>Request ID</th>\n")
+	                 .append("      <th>User ID</th>\n")
+	                 .append("      <th>User Name</th>\n");
+	        
+	        if (status.equals("bill") || status.equals("paid"))
+		        htmlTable.append("      <th>Bill</th>\n")
+		        		 .append("      <th>Paid</th>\n")
+		        		 .append("      <th>Balance</th>\n"); 
+	        
+	        htmlTable.append("    </tr>\n")
+	                 .append("  </thead>\n")
+	                 .append("  <tbody>\n");
+
+	        // Iterate through each result in the ResultSet
+	        while (resultSet.next()) {
+	            String requestDate = resultSet.getString("request_date");
+	            int tree_n = resultSet.getInt("tree_n");
+	            String requestId = resultSet.getString("request_id");
+	            int bill =  resultSet.getInt("bill");
+	            int paid = resultSet.getInt("paid");
+	            int userID = resultSet.getInt("user_id");
+	            String username = get_user_info(userID, "firstName")+" "+get_user_info(userID, "lastName");
+
+	            // Check if the requestId is in the overdue list
+	            String rowStyle = overdue.contains(Integer.valueOf(requestId)) ? " style=\"background-color: #FF7F7F;\"" : 
+	                             ((tree_n == 1 && status.equals("accepted")) ? " style=\"background-color: #90EE90;\"" : "");
+
+
+	            // Constructing each row of the table
+	            htmlTable.append("    <tr").append(rowStyle).append(">\n")
+	                     .append("      <td><a href=\"/database/requestDetails?requestId=").append(requestId)
+	                     .append("\" class=\"date-link\" data-request-id=\"").append(requestId)
+	                     .append("\">").append(requestDate).append("</a></td>\n")
+	                     .append("      <td>").append(requestId).append("</td>\n")
+	                     .append("      <td>").append(userID).append("</td>\n")
+	                     .append("      <td>").append(username).append("</td>\n");
+	            
+	            if (status.equals("bill") || status.equals("paid"))
+	            htmlTable.append("      <td>$").append(bill).append("</td>\n")
+	            		 .append("      <td>$").append(paid).append("</td>\n")
+	                     .append("      <td>$").append(bill-paid).append("</td>\n");
+	            
+	            htmlTable.append("    </tr>\n");
+	        }
+
+
+	        htmlTable.append("  </tbody>\n")
+	                 .append("</table>\n");
+
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return htmlTable.toString();
+	}
+
 	
 	public static String generateChatHTMLTable(ResultSet resultSet, boolean adminView) throws SQLException {
 	    StringBuilder htmlTable = new StringBuilder();
@@ -1049,80 +1085,140 @@ public class userDAO {
 		return htmlTable.toString();
 	}
 	
+    
+    public String convertBigListToHtmlTable(List<TreeSumByUser.UserTreeCount> userTreeCounts) throws SQLException {
+        StringBuilder htmlTable = new StringBuilder();
 
+        htmlTable.append("<table border='1'>"); // Start of the table, you can add more styling here
+        htmlTable.append("<tr><th>User ID</th><th>User Name</th><th>Trees_n</th></tr>"); // Table header
+        String name="";
+        for (TreeSumByUser.UserTreeCount userTreeCount : userTreeCounts) {
+        	name = get_user_info(userTreeCount.getUserId(), "firstName")+" "+get_user_info(userTreeCount.getUserId(), "lastName");
+            htmlTable.append("<tr>"); // Start of row
+            htmlTable.append("<td>").append(userTreeCount.getUserId()).append("</td>"); // User ID column
+            htmlTable.append("<td>").append(name).append("</td>"); // User Name column
+            htmlTable.append("<td>").append(userTreeCount.getTreeCount()).append("</td>"); // Tree count column
+            htmlTable.append("</tr>"); // End of row
+        }
+
+        htmlTable.append("</table>"); // End of table
+
+        return htmlTable.toString();
+    }
+   
+    public String convertProspectivesToHtmlTable(List<Integer> Prospectives) throws SQLException {
+        StringBuilder htmlTable = new StringBuilder();
+
+        htmlTable.append("<table border='1'>"); // Start of the table, add more styling if needed
+        htmlTable.append("<tr><th>User ID</th><th>User Name</th></tr>"); // Table header
+        String name="";
+        for (Integer ID : Prospectives) {
+        			name = get_user_info(ID, "firstName")+" "+get_user_info(ID, "lastName");
+        			htmlTable.append("<tr>"); // Start of row
+		            htmlTable.append("<td>").append(ID).append("</td>"); // User ID column
+		            htmlTable.append("<td>").append(name).append("</td>"); // User Name column
+		            htmlTable.append("</tr>"); // End of row
+        	}
+
+        htmlTable.append("</table>"); // End of table
+
+        return htmlTable.toString();
+    }
 	
 	public String listBigClients() throws SQLException {
 		connect_func();
 		List<TreeSumByUser.UserTreeCount> TreeCounts = TreeSumByUser.getTreeCountsPerUser(connect);
 //		TreeCounts.forEach(System.out::println);
 		disconnect();
-		return TreeSumByUser.convertToHtmlTable(TreeCounts);
-	}
-	public String listGoodClients() throws SQLException {
-		connect_func();
-		List<ChatDelay> delays = ChatDelay.calculateDelays(connect);
-		delays.forEach(System.out::println);
-		disconnect();
-		return ChatDelay.convertToHtmlTable(delays);
-	}
-	public String listProspectiveClients() throws SQLException {
-		connect_func();
-		List<Integer> Prospectives = ChatDelay.getUsersWithUnacceptedQuotes(connect);
-		Prospectives.forEach(System.out::println);
-		disconnect();
-		return ChatDelay.convertProspectivesToHtmlTable(Prospectives);
+		return convertBigListToHtmlTable(TreeCounts);
 	}
 	public String listEasyClients() throws SQLException {
 		connect_func();
 		List<Integer> easy = ChatDelay.getEasyClients(connect);
 		easy.forEach(System.out::println);
 		disconnect();
-		return ChatDelay.convertProspectivesToHtmlTable(easy);
+		return convertProspectivesToHtmlTable(easy);
 	}
+	public String listProspectiveClients() throws SQLException {
+		connect_func();
+		List<Integer> Prospectives = ChatDelay.getUsersWithUnacceptedQuotes(connect);
+		Prospectives.forEach(System.out::println);
+		disconnect();
+		return convertProspectivesToHtmlTable(Prospectives);
+	}
+	public String listGoodClients() throws SQLException {
+		connect_func();
+		List<ChatDelay> delays = ChatDelay.calculateDelays(connect);
+		delays.forEach(System.out::println);
+		disconnect();
+		return ChatDelay.convertGoodToHtmlTable(delays);
+	}
+	public String listBadClients() throws SQLException {
+		connect_func();
+		List<ChatDelay> delays = ChatDelay.calculateDelays(connect);
+		delays.forEach(System.out::println);
+		disconnect();
+		return ChatDelay.convertBadToHtmlTable(delays);
+	}
+
+
 	
 	public String listAllTable(String tableName) throws SQLException {
-		String htmlTable = "";
-		String sql = "SELECT * FROM " + tableName;
-		connect_func();
-		statement = (Statement) connect.createStatement();
-		ResultSet resultSet = statement.executeQuery(sql);
-		try {
-			htmlTable = resultSetToHTMLTable(resultSet);
-			System.out.println("htmlTable generated");
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return htmlTable;
+	    String htmlTable = "";
+	    // Validate the table name
+	    List<String> validTableNames = Arrays.asList("user", "requests", "trees", "chats"); 
+	    if (!validTableNames.contains(tableName)) {
+	        throw new IllegalArgumentException("Invalid table name");
+	    }
+
+	    String sql = "SELECT * FROM " + tableName; // Use validated table name
+	    connect_func();
+
+	    try (Statement statement = connect.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
+	        htmlTable = resultSetToHTMLTable(resultSet);
+	        System.out.println("htmlTable generated");
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return htmlTable;
 	}
 
 	public String listUserTable(int user_id) throws SQLException {
-		String htmlTable = "";
-		String sql = "SELECT * FROM requests WHERE user_id = " + user_id;
-		connect_func();
-		statement = (Statement) connect.createStatement();
-		ResultSet resultSet = statement.executeQuery(sql);
-		try {
-			htmlTable = generateHTMLRequestTable(resultSet, true);
-			System.out.println("htmlTable generated");
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return htmlTable;
+	    String htmlTable = "";
+	    String sql = "SELECT * FROM requests WHERE user_id = ?"; // Use a placeholder for user_id
+	    connect_func();
+
+	    try (PreparedStatement preparedStatement = connect.prepareStatement(sql)) {
+	        preparedStatement.setInt(1, user_id); // Set the user_id parameter
+
+	        ResultSet resultSet = preparedStatement.executeQuery();
+
+	        htmlTable = generateHTMLRequestTable_user(resultSet);
+	        System.out.println("htmlTable generated");
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return htmlTable;
 	}
 
 	public String listAdminTable(String status) throws SQLException {
-		String htmlTable = "";
-		String sql = "SELECT * FROM requests WHERE status = \"" + status + "\"";
-		connect_func();
-		statement = (Statement) connect.createStatement();
-		ResultSet resultSet = statement.executeQuery(sql);
-		try {
-			htmlTable = generateHTMLRequestTable(resultSet, false);
-			System.out.println("htmlTable generated");
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return htmlTable;
+	    String htmlTable = "";
+	    String sql = "SELECT * FROM requests WHERE status = ?";
+	    connect_func();
+
+	    try (PreparedStatement preparedStatement = connect.prepareStatement(sql)) {
+	        preparedStatement.setString(1, status);
+	        ResultSet resultSet = preparedStatement.executeQuery();
+
+	        htmlTable = generateHTMLRequestTable_Admin(resultSet, status);
+	        System.out.println("htmlTable generated");
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return htmlTable;
 	}
 
 	public String listChatTable(int request_id, int current_user_id) throws SQLException {
@@ -1260,62 +1356,62 @@ public class userDAO {
 
 		String[] REQUESTS = { 
 			    ("insert into Requests(request_date, status, tree_n, bill, paid, user_id)"
-			    + "values ( '2023-06-12 12:06:54' , 'accepted'  ,1 ,0 	,0 		, 3),"
-			    + "       ( '2023-06-12 12:08:29' , 'Rejected'  ,2 ,0 	,0 		, 4),"
-			    + "       ( '2023-06-12 12:09:37' , 'paid'      ,3 ,250 ,250 	, 5),"
-			    + "       ( '2023-06-12 12:10:55' , 'Cancelled' ,1 ,0 	,0 		, 6),"
-			    + "       ( '2023-06-12 12:11:28' , 'bill'      ,3 ,0 	,0 		, 6),"
-			    + "       ( '2023-06-12 12:12:09' , 'bill'      ,2 ,80  ,50 	, 7),"
-			    + "       ( '2023-06-12 12:12:09' , 'accepted'  ,2 ,0   ,0 		, 8),"
-			    + "       ( '2023-06-02 12:12:09' , 'bill'      ,3 ,180 ,100	, 9),"
-			    + "       ( '2023-06-12 12:12:09' , 'quote'     ,2 ,0   ,0 		, 10)"
+			    + "values ( '2023-12-06 12:06:54' , 'accepted'  ,1 ,0 	,0 		, 3),"
+			    + "       ( '2023-12-06 12:08:29' , 'Rejected'  ,2 ,0 	,0 		, 4),"
+			    + "       ( '2023-12-06 12:09:37' , 'paid'      ,3 ,250 ,250 	, 5),"
+			    + "       ( '2023-12-06 12:10:55' , 'Cancelled' ,1 ,0 	,0 		, 6),"
+			    + "       ( '2023-12-06 12:11:28' , 'bill'      ,3 ,0 	,0 		, 6),"
+			    + "       ( '2023-12-06 12:12:09' , 'bill'      ,2 ,80  ,50 	, 7),"
+			    + "       ( '2023-12-06 12:12:09' , 'accepted'  ,2 ,0   ,0 		, 8),"
+			    + "       ( '2023-11-20 12:12:09' , 'bill'      ,3 ,180 ,100	, 9),"
+			    + "       ( '2023-12-06 12:12:09' , 'quote'     ,2 ,0   ,0 		, 10)"
 			    + ";")
 			};
 
 			String[] Chats = { 
 			    ("insert into Chats(msg_date, msg_topic, msg_content, who_sent, request_id)"
-			    + "values ('2023-07-12 09:06:54', 'Beginning', 	'The request Started with above information', 				'user'   ,1),"
-			    + "       ('2023-07-12 09:07:54', 'Beginning', 	'The request Started with above information', 				'user'   ,2),"
-			    + "       ('2023-07-12 09:08:54', 'Beginning', 	'The request Started with above information', 				'user'   ,3),"
-			    + "       ('2023-07-12 09:09:54', 'Beginning', 	'The request Started with above information', 				'user'   ,4),"
-			    + "       ('2023-07-12 09:10:54', 'Beginning', 	'The request Started with above information', 				'user'   ,5),"
-			    + "       ('2023-07-12 09:11:54', 'Beginning', 	'The request Started with above information', 				'user'   ,6),"
-			    + "       ('2023-07-12 10:06:54', 'Quote', 	   	'Cost is roughly $100 for tree_1 Note: The actual cost may be higher depending on the bee hive situation.', 				'admin'  ,1),"
-			    + "       ('2023-07-12 10:26:54', 'Quote', 	   	'Cost is roughly $50 for tree_1 $75 for tree_2 $120 for tree_3 Note: The actual cost may differ depending on the situation.'        , 			'admin'  ,3),"
-			    + "       ('2023-07-12 12:06:54', 'Acceptance', 'User accepted the request', 				'user'   ,3),"
-			    + "       ('2023-08-12 12:06:01', 'Bill', 		'Final Cost is $30 for tree_1 $80 for tree_2 $130 for tree_3 and $10for other costs. Total= $250 Due in one week. Note: Thanks for your business.'        , 			'admin'  ,3),"
-			    + "       ('2023-08-12 20:06:00', 'payment', 	'User paid $150 Still $100 remains.', 				'user'   ,3),"
-			    + "       ('2023-08-12 21:06:00', 'payment', 	'User paid $50 Still $50 remains.'        , 			'user'   ,3),"
-			    + "       ('2023-08-12 22:06:00', 'Paid', 		'User paid the full price', 				'user'	 ,3),"
-			    + "       ('2023-08-12 23:06:00', 'Rejected', 	'sorry it is too hard for me.', 				'admin'	 ,2),"
-			    + "       ('2023-09-12 22:06:00', 'Quote', 		'Cost is roughly $100 for tree_1 Note: tax is not included', 				'admin'	 ,4),"
-			    + "       ('2023-09-13 22:06:00', 'Cancelled', 	'It is too late I did it myself', 				'user'	 ,4),"
-			    + "('2023-07-12 14:19:42', 'Quote', 'Cost is roughly $50 for tree_1 $50 for tree_2 $200 for tree_3 Note: Some other minor costs may apply', 'admin', 5),"
-			    + "('2023-07-12 14:21:38', 'Ask for Discount', 'I will accept the quote for $80', 'user', 1),"
-			    + "('2023-07-12 14:22:44', 'Discount', 'Okay, that is fine.', 'admin', 1),"
-			    + "('2023-07-12 14:23:09', 'Acceptance', 'User accepted the request', 'user', 1),"
-			    + "('2023-07-12 14:24:20', 'Quote', 'Cost is roughly $50 for tree_1 $30 for tree_2 Note: No more cost will apply.', 'admin', 6),"
-			    + "('2023-07-12 14:24:58', 'Acceptance', 'User accepted the request', 'user', 6),"
-			    + "('2023-07-12 14:26:14', 'Bill', 'Final Cost is $50 for tree_1 $30 for tree_2 and $0for other costs. Total= $80 Due in one week. Note: Thank You.', 'admin', 6),"
-			    + "('2023-07-12 14:27:05', 'payment', 'User paid $50 Still $30 remains.', 'user', 6),"
-			    + "('2023-07-12 14:36:57', 'Negotiation', 'Why the third one cost this high?', 'user', 5),"
-			    + "('2023-07-12 14:37:29', 'Asnwer', 'Because it is too high', 'admin', 5),"
-			    + "('2023-07-12 14:37:49', 'Acceptance', 'User accepted the request', 'user', 5),"
-			    + "('2023-07-12 17:06:47', 'Beginning', 'The request Started with above information', 'user', 7),"
-			    + "('2023-07-12 17:07:33', 'Beginning', 'The request Started with above information', 'user', 8),"
-			    + "('2023-07-12 17:08:53', 'Quote', 'Cost is roughly $75 for tree_1 $45 for tree_2 Note: up to $20 may be applied for other costs.', 'admin', 7),"
-			    + "('2023-07-02 17:10:23', 'Quote', 'Cost is roughly $130 for tree_1 $25 for tree_2 $50 for tree_3 Note: Nothing more', 'admin', 8),"
-			    + "('2023-07-12 17:12:03', 'Ask for discount', 'Please give me a discount', 'user', 7),"
-			    + "('2023-07-12 17:13:15', 'Discount', 'I accept if you do it for $160 in total', 'user', 8),"
-			    + "('2023-07-12 17:14:15', 'Agree', 'Okay I will do the job for $100 nothing less', 'admin', 7),"
-			    + "('2023-07-12 17:14:46', 'Discount', 'At least $180', 'admin', 8),"
-			    + "('2023-07-12 17:14:54', 'Acceptance', 'User accepted the request', 'user', 8),"
-			    + "('2023-07-12 17:15:03', 'Acceptance', 'User accepted the request', 'user', 7),"
-			    + "('2023-07-12 17:16:27', 'Bill', 'Final Cost is $50 for tree_1 $50 for tree_2 $200 for tree_3 and $10for other costs. Total= $310 Due in one week. Note: A $10 is for tax', 'admin', 5),"
-			    + "('2023-07-02 17:18:11', 'Bill', 'Final Cost is $120 for tree_1 $10 for tree_2 $40 for tree_3 and $10for other costs. Total= $180 Due in one week. Note: The $10 is for tax.', 'admin', 8),"
-			    + "('2023-07-06 17:19:26', 'payment', 'User paid $100 Still $80 remains.', 'user', 8),"
-			    + "('2023-07-12 17:20:19', 'Beginning', 'The request Started with above information', 'user', 9),"
-			    + "('2023-07-12 17:21:22', 'Quote', 'Cost is roughly $250 for tree_1 $100 for tree_2 Note: It is the final price', 'admin', 9)"
+			    + "values ('2023-12-07 09:06:54', 'Beginning', 	'The request Started with above information', 				'user'   ,1),"
+			    + "       ('2023-12-07 09:07:54', 'Beginning', 	'The request Started with above information', 				'user'   ,2),"
+			    + "       ('2023-12-07 09:08:54', 'Beginning', 	'The request Started with above information', 				'user'   ,3),"
+			    + "       ('2023-12-07 09:09:54', 'Beginning', 	'The request Started with above information', 				'user'   ,4),"
+			    + "       ('2023-12-07 09:10:54', 'Beginning', 	'The request Started with above information', 				'user'   ,5),"
+			    + "       ('2023-12-07 09:11:54', 'Beginning', 	'The request Started with above information', 				'user'   ,6),"
+			    + "       ('2023-12-07 10:06:54', 'Quote', 	   	'Cost is roughly $100 for tree_1 Note: The actual cost may be higher depending on the bee hive situation.', 				'admin'  ,1),"
+			    + "       ('2023-12-07 10:26:54', 'Quote', 	   	'Cost is roughly $50 for tree_1 $75 for tree_2 $120 for tree_3 Note: The actual cost may differ depending on the situation.'        , 			'admin'  ,3),"
+			    + "       ('2023-12-07 12:06:54', 'Acceptance', 'User accepted the request', 				'user'   ,3),"
+			    + "       ('2023-12-07 12:06:01', 'Bill', 		'Final Cost is $30 for tree_1 $80 for tree_2 $130 for tree_3 and $10for other costs. Total= $250 Due in one week. Note: Thanks for your business.'        , 			'admin'  ,3),"
+			    + "       ('2023-12-07 20:06:00', 'payment', 	'User paid $150 Still $100 remains.', 				'user'   ,3),"
+			    + "       ('2023-12-07 21:06:00', 'payment', 	'User paid $50 Still $50 remains.'        , 			'user'   ,3),"
+			    + "       ('2023-12-07 22:06:00', 'Paid', 		'User paid the full price', 				'user'	 ,3),"
+			    + "       ('2023-12-07 23:06:00', 'Rejected', 	'sorry it is too hard for me.', 				'admin'	 ,2),"
+			    + "       ('2023-12-07 22:06:00', 'Quote', 		'Cost is roughly $100 for tree_1 Note: tax is not included', 				'admin'	 ,4),"
+			    + "       ('2023-12-07 22:06:00', 'Cancelled', 	'It is too late I did it myself', 				'user'	 ,4),"
+			    + "('2023-12-07 14:19:42', 'Quote', 'Cost is roughly $50 for tree_1 $50 for tree_2 $200 for tree_3 Note: Some other minor costs may apply', 'admin', 5),"
+			    + "('2023-12-07 14:21:38', 'Ask for Discount', 'I will accept the quote for $80', 'user', 1),"
+			    + "('2023-12-07 14:22:44', 'Discount', 'Okay, that is fine.', 'admin', 1),"
+			    + "('2023-12-07 14:23:09', 'Acceptance', 'User accepted the request', 'user', 1),"
+			    + "('2023-12-07 14:24:20', 'Quote', 'Cost is roughly $50 for tree_1 $30 for tree_2 Note: No more cost will apply.', 'admin', 6),"
+			    + "('2023-12-07 14:24:58', 'Acceptance', 'User accepted the request', 'user', 6),"
+			    + "('2023-12-07 14:26:14', 'Bill', 'Final Cost is $50 for tree_1 $30 for tree_2 and $0for other costs. Total= $80 Due in one week. Note: Thank You.', 'admin', 6),"
+			    + "('2023-12-07 14:27:05', 'payment', 'User paid $50 Still $30 remains.', 'user', 6),"
+			    + "('2023-12-07 14:36:57', 'Negotiation', 'Why the third one cost this high?', 'user', 5),"
+			    + "('2023-12-07 14:37:29', 'Asnwer', 'Because it is too high', 'admin', 5),"
+			    + "('2023-12-07 14:37:49', 'Acceptance', 'User accepted the request', 'user', 5),"
+			    + "('2023-12-07 17:06:47', 'Beginning', 'The request Started with above information', 'user', 7),"
+			    + "('2023-11-20 17:07:33', 'Beginning', 'The request Started with above information', 'user', 8),"
+			    + "('2023-12-07 17:08:53', 'Quote', 'Cost is roughly $75 for tree_1 $45 for tree_2 Note: up to $20 may be applied for other costs.', 'admin', 7),"
+			    + "('2023-11-20 17:10:23', 'Quote', 'Cost is roughly $130 for tree_1 $25 for tree_2 $50 for tree_3 Note: Nothing more', 'admin', 8),"
+			    + "('2023-12-07 17:12:03', 'Ask for discount', 'Please give me a discount', 'user', 7),"
+			    + "('2023-11-20 17:13:15', 'Discount', 'I accept if you do it for $160 in total', 'user', 8),"
+			    + "('2023-12-07 17:14:15', 'Agree', 'Okay I will do the job for $100 nothing less', 'admin', 7),"
+			    + "('2023-11-21 17:14:46', 'Discount', 'At least $180', 'admin', 8),"
+			    + "('2023-11-22 17:14:54', 'Acceptance', 'User accepted the request', 'user', 8),"
+			    + "('2023-12-07 17:15:03', 'Acceptance', 'User accepted the request', 'user', 7),"
+			    + "('2023-12-07 17:16:27', 'Bill', 'Final Cost is $50 for tree_1 $50 for tree_2 $200 for tree_3 and $10for other costs. Total= $310 Due in one week. Note: A $10 is for tax', 'admin', 5),"
+			    + "('2023-11-28 17:18:11', 'Bill', 'Final Cost is $120 for tree_1 $10 for tree_2 $40 for tree_3 and $10for other costs. Total= $180 Due in one week. Note: The $10 is for tax.', 'admin', 8),"
+			    + "('2023-06-07 17:19:26', 'payment', 'User paid $100 Still $80 remains.', 'user', 8),"
+			    + "('2023-12-07 17:20:19', 'Beginning', 'The request Started with above information', 'user', 9),"
+			    + "('2023-12-07 17:21:22', 'Quote', 'Cost is roughly $250 for tree_1 $100 for tree_2 Note: It is the final price', 'admin', 9)"
 			    + ";" ) };
 
 

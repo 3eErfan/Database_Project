@@ -58,9 +58,39 @@ public class ChatDelay {
         }
     }
     
-    // Method to calculate delays
+//    // Method to calculate delays
+//    public static List<ChatDelay> calculateDelays(Connection connection) throws SQLException {
+//        List<ChatDelay> delays = new ArrayList<>();
+//
+//        String query = "SELECT request_id, msg_date, msg_topic FROM Chats WHERE msg_topic IN ('Paid', 'Bill') ORDER BY request_id, msg_date";
+//        try (Statement statement = connection.createStatement();
+//             ResultSet resultSet = statement.executeQuery(query)) {
+//
+//            Integer lastRequestId = null;
+//            LocalDateTime lastDateTime = null;
+//
+//            while (resultSet.next()) {
+//                int currentRequestId = resultSet.getInt("request_id");
+//                int currentUserId = getUserIdByRequestId(connection, currentRequestId);
+//                LocalDateTime currentDateTime = LocalDateTime.parse(resultSet.getString("msg_date"), DateTimeFormatter.ofPattern("yyyy-dd-MM HH:mm:ss"));
+//                String currentTopic = resultSet.getString("msg_topic");
+//
+//                if (lastRequestId != null && lastRequestId.equals(currentRequestId) && "Paid".equals(currentTopic) && lastDateTime != null) {
+//                    float delay = (float) (Duration.between(lastDateTime, currentDateTime).toSeconds()/3600.0);
+//                    delays.add(new ChatDelay(currentRequestId, delay, currentUserId));
+//                    lastRequestId = null; // Reset for the next pair
+//                } else if ("Bill".equals(currentTopic)) {
+//                    lastRequestId = currentRequestId;
+//                    lastDateTime = currentDateTime;
+//                }
+//            }
+//        }
+//
+//        return delays;
+//    }
     public static List<ChatDelay> calculateDelays(Connection connection) throws SQLException {
         List<ChatDelay> delays = new ArrayList<>();
+        LocalDateTime currentTime = LocalDateTime.now();
 
         String query = "SELECT request_id, msg_date, msg_topic FROM Chats WHERE msg_topic IN ('Paid', 'Bill') ORDER BY request_id, msg_date";
         try (Statement statement = connection.createStatement();
@@ -72,23 +102,34 @@ public class ChatDelay {
             while (resultSet.next()) {
                 int currentRequestId = resultSet.getInt("request_id");
                 int currentUserId = getUserIdByRequestId(connection, currentRequestId);
-                LocalDateTime currentDateTime = LocalDateTime.parse(resultSet.getString("msg_date"), DateTimeFormatter.ofPattern("yyyy-dd-MM HH:mm:ss"));
+                LocalDateTime currentDateTime = LocalDateTime.parse(resultSet.getString("msg_date"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 String currentTopic = resultSet.getString("msg_topic");
 
-                if (lastRequestId != null && lastRequestId.equals(currentRequestId) && "Paid".equals(currentTopic) && lastDateTime != null) {
-                    float delay = (float) (Duration.between(lastDateTime, currentDateTime).toSeconds()/3600.0);
-                    delays.add(new ChatDelay(currentRequestId, delay, currentUserId));
-                    lastRequestId = null; // Reset for the next pair
+                if (lastRequestId != null && lastRequestId.equals(currentRequestId)) {
+                    if ("Paid".equals(currentTopic) && lastDateTime != null) {
+                        // Calculate delay between 'Bill' and 'Paid'
+                        float delay = (float) (Duration.between(lastDateTime, currentDateTime).toSeconds() / 3600.0);
+                        delays.add(new ChatDelay(currentRequestId, delay, currentUserId));
+                        lastRequestId = null; // Reset for the next pair
+                    }
                 } else if ("Bill".equals(currentTopic)) {
                     lastRequestId = currentRequestId;
                     lastDateTime = currentDateTime;
                 }
             }
+
+            // Check for unpaid bills
+            if (lastRequestId != null && lastDateTime != null) {
+                // Calculate delay from the last bill to the current time
+                float delay = (float) (Duration.between(lastDateTime, currentTime).toSeconds() / 3600.0);
+                delays.add(new ChatDelay(lastRequestId, delay, getUserIdByRequestId(connection, lastRequestId)));
+            }
         }
 
         return delays;
     }
-
+    
+    
     public static List<Integer> getUnpaidBills(Connection connection) throws SQLException {
         List<Integer> unpaidBills = new ArrayList<>();
         Map<Integer, LocalDateTime> lastBillTimeMap = new HashMap<>();
@@ -102,7 +143,7 @@ public class ChatDelay {
             
             while (resultSet.next()) {
                 int currentRequestId = resultSet.getInt("request_id");
-                LocalDateTime currentDateTime = LocalDateTime.parse(resultSet.getString("msg_date"), DateTimeFormatter.ofPattern("yyyy-dd-MM HH:mm:ss"));
+                LocalDateTime currentDateTime = LocalDateTime.parse(resultSet.getString("msg_date"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 String currentTopic = resultSet.getString("msg_topic");
 
                 if ("Bill".equals(currentTopic)) {
@@ -262,7 +303,7 @@ public class ChatDelay {
     
     
     // Method to convert list to HTML table
-    public static String convertToHtmlTable(List<ChatDelay> Delays) {
+    public static String convertGoodToHtmlTable(List<ChatDelay> Delays) {
     	List<UserAverageDelay> chatDelays = calculateAverageDelays(Delays);
         StringBuilder htmlTable = new StringBuilder();
 
@@ -273,7 +314,7 @@ public class ChatDelay {
         	if (chatDelay.getAverageDelay() < 24.0) {
 		            htmlTable.append("<tr>"); // Start of row
 		            htmlTable.append("<td>").append(chatDelay.getUserId()).append("</td>"); // User ID column
-		            htmlTable.append("<td>").append(chatDelay.getAverageDelay()).append("</td>"); // Delay column
+		            htmlTable.append("<td>").append(String.format("%.1f", chatDelay.getAverageDelay())).append("</td>"); // Delay column
 		            htmlTable.append("</tr>"); // End of row
         		}
         	}
@@ -283,22 +324,26 @@ public class ChatDelay {
         return htmlTable.toString();
     }
     
-    
     // Method to convert list to HTML table
-    public static String convertProspectivesToHtmlTable(List<Integer> Prospectives) {
+    public static String convertBadToHtmlTable(List<ChatDelay> Delays) {
+    	List<UserAverageDelay> chatDelays = calculateAverageDelays(Delays);
         StringBuilder htmlTable = new StringBuilder();
 
         htmlTable.append("<table border='1'>"); // Start of the table, add more styling if needed
-        htmlTable.append("<tr><th>User ID</th></tr>"); // Table header
+        htmlTable.append("<tr><th>User ID</th><th>Payment Delay (Days)</th></tr>"); // Table header
 
-        for (Integer ID : Prospectives) {
+        for (UserAverageDelay chatDelay : chatDelays) {
+        	if (chatDelay.getAverageDelay() > 7*24.0) {
 		            htmlTable.append("<tr>"); // Start of row
-		            htmlTable.append("<td>").append(ID).append("</td>"); // User ID column
+		            htmlTable.append("<td>").append(chatDelay.getUserId()).append("</td>"); // User ID column
+		            htmlTable.append("<td>").append(String.format("%.1f", chatDelay.getAverageDelay() / 24.0)).append("</td>"); // Delay column
 		            htmlTable.append("</tr>"); // End of row
+        		}
         	}
 
         htmlTable.append("</table>"); // End of table
 
         return htmlTable.toString();
     }
+
 }

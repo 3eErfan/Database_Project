@@ -36,6 +36,8 @@
             <p><%= request.getAttribute("Prospective") %></p>
             <h3>Good Clients</h3>
             <p><%= request.getAttribute("Good") %></p>
+            <h3>Bad Clients</h3>
+            <p><%= request.getAttribute("Bad") %></p>
             <h3>Highest Tree</h3>
             <p><%= request.getAttribute("Highest Tree") %></p>    
         </div>

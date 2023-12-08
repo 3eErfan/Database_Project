@@ -104,24 +104,7 @@ public class TreeSumByUser {
         return usersWithMaxTrees;
     }
     
-    // Function to convert list to HTML table
-    public static String convertToHtmlTable(List<UserTreeCount> userTreeCounts) {
-        StringBuilder htmlTable = new StringBuilder();
 
-        htmlTable.append("<table border='1'>"); // Start of the table, you can add more styling here
-        htmlTable.append("<tr><th>User ID</th><th>Number of Trees</th></tr>"); // Table header
-
-        for (UserTreeCount userTreeCount : userTreeCounts) {
-            htmlTable.append("<tr>"); // Start of row
-            htmlTable.append("<td>").append(userTreeCount.getUserId()).append("</td>"); // User ID column
-            htmlTable.append("<td>").append(userTreeCount.getTreeCount()).append("</td>"); // Tree count column
-            htmlTable.append("</tr>"); // End of row
-        }
-
-        htmlTable.append("</table>"); // End of table
-
-        return htmlTable.toString();
-    }
     
     
     

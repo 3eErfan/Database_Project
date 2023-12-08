@@ -145,11 +145,11 @@ public class ControlServlet extends HttpServlet {
 		request.setAttribute("requests", "\n<h3>Work Order  (Quote Accepted)</h3>\n"
 							+ userDAO.listAdminTable("accepted")
 							+"\n<h3>Waiting for Client To Accept the Quote</h3>\n" 
-							+ userDAO.listAdminTable("Quote")
+							+ userDAO.listAdminTable("quote")
 							+"<h3>Open requests</h3>" 
-							+ userDAO.listAdminTable("Open")
+							+ userDAO.listAdminTable("open")
 							+"<h3>Done requests (open payment)</h3>" 
-							+ userDAO.listAdminTable("Bill")
+							+ userDAO.listAdminTable("bill")
 							+"<h3>Done requests (Paid)</h3>" 
 							+ userDAO.listAdminTable("paid")
 							+"<h3>Rejected requests</h3>" 
@@ -161,6 +161,7 @@ public class ControlServlet extends HttpServlet {
 		request.setAttribute("Big", userDAO.listBigClients());
 		request.setAttribute("Easy", userDAO.listEasyClients());
 		request.setAttribute("Good", userDAO.listGoodClients());
+		request.setAttribute("Bad", userDAO.listBadClients());
 		request.setAttribute("Prospective", userDAO.listProspectiveClients());
 		request.setAttribute("Highest Tree", userDAO.generate_MaxHeight_Tree_HTMLtable());
 		
@@ -304,7 +305,7 @@ public class ControlServlet extends HttpServlet {
 	private void newMsg(HttpServletRequest request, HttpServletResponse response, String status)
 			throws ServletException, IOException, SQLException {
         
-		String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+		String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         
 //		int requestId = Integer.valueOf( request.getParameter("requestId") );
 		String msg = request.getParameter("msg");
@@ -331,7 +332,7 @@ public class ControlServlet extends HttpServlet {
 	private void newTree(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException, SQLException {
 		       
-        String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         
         String treeCountString = request.getParameter("treeCount");
 
@@ -389,7 +390,7 @@ public class ControlServlet extends HttpServlet {
 	
 	private void rejectRequest(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
-			String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 			String msg = request.getParameter("note");
 			String status = "";
 			
@@ -405,7 +406,7 @@ public class ControlServlet extends HttpServlet {
 	private void acceptRequest(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
 			
-		String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+		String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         
 	         
 			String msg = "User accepted the request";
@@ -419,7 +420,7 @@ public class ControlServlet extends HttpServlet {
 	
 	private void quote(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
-			String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 			
 			int tree_n = userDAO.update_tree_cost(request, currentRequest_id);
 			String msg = "Cost is roughly";
@@ -439,7 +440,7 @@ public class ControlServlet extends HttpServlet {
 
 	private void bill(HttpServletRequest request, HttpServletResponse response, String view) 
 			throws ServletException, IOException, SQLException {
-			String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 			
 			int tree_n = userDAO.update_tree_cost(request, currentRequest_id);
 			int sum = 0;
@@ -465,7 +466,7 @@ public class ControlServlet extends HttpServlet {
 			throws ServletException, IOException, SQLException {
 		String msg = "";
 		String topic = "";
-		String timeStamp = new SimpleDateFormat("yyyy-dd-MM HH:mm:ss").format(Calendar.getInstance().getTime());
+		String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 		int amount = Integer.valueOf(request.getParameter("payment_amount"));
 		System.out.println("amount: "+amount+ "  id: "+currentRequest_id);
 		
